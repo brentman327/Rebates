@@ -1,0 +1,420 @@
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Rebate Stack Optimizer</title>
+    <script src="https://jsdelivr.net"></script>
+</head>
+<body class="bg-slate-50 font-sans min-h-screen antialiased text-slate-800">
+
+    <div class="max-w-5xl mx-auto px-4 py-8">
+        <!-- App Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">Smart Rebate Stack Optimizer</h1>
+            <p class="text-slate-600 mt-2 text-lg">Search brands, choose combinations, and instantly optimize your savings stack live.</p>
+        </header>
+
+        <!-- Dynamic Stacking Calculator Widget -->
+        <div class="bg-white border-2 border-blue-500 rounded-2xl shadow-xl p-6 mb-8 sticky top-4 z-40 transition-all">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="animate-pulse h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                        <h2 class="text-xl font-bold text-slate-900">Live Stack Calculator</h2>
+                    </div>
+                    <p class="text-sm text-slate-500 mt-1" id="stackCount">0 rebates selected for this invoice combination.</p>
+                </div>
+                <div class="text-center md:text-right bg-slate-50 px-6 py-3 rounded-xl border border-slate-100 min-w-[200px]">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest block">Total Estimated Back</span>
+                    <span class="text-3xl font-black text-emerald-600" id="totalSavingsValue">$0</span>
+                </div>
+            </div>
+            
+            <!-- Selected Items Summary Shelf -->
+            <div id="selectedContainer" class="mt-4 pt-4 border-t border-slate-100 hidden">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Active Combinations:</h4>
+                <div id="selectedBadges" class="flex flex-wrap gap-2"></div>
+            </div>
+        </div>
+
+        <!-- Search Engine Box -->
+        <div class="mb-8">
+            <label for="brandSearch" class="block text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Search Brand or Store-Wide Deals</label>
+            <div class="relative shadow-xs rounded-xl">
+                <input type="text" id="brandSearch" oninput="filterRebates()" placeholder="Type a brand name (e.g., LG, Samsung, GE, Café, Whirlpool)..." 
+                    class="w-full px-5 py-4 text-lg border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-all shadow-inner">
+            </div>
+        </div>
+
+        <!-- System Notices -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-sm text-amber-800">
+                <span class="text-lg">💡</span>
+                <p><strong>Stacking Rule:</strong> Look for the <span class="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded">Store Bundle</span> tag. You can stack 1 Store Bundle tier reward together with matching independent <span class="bg-indigo-100 text-indigo-900 font-bold px-1.5 py-0.5 rounded">Manufacturer Rebates</span> on a single invoice!</p>
+            </div>
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3 text-sm text-blue-800">
+                <span class="text-lg">⏱️</span>
+                <p><strong>Deadlines:</strong> Most promotional submissions require online or mail-in claims to be processed within <strong>90 days</strong> of purchase or by January/March 2027.</p>
+            </div>
+        </div>
+
+        <!-- Rebates Dynamic Container -->
+        <div id="rebatesList" class="space-y-4">
+            <!-- Programmatically Injected Matrix Cards -->
+        </div>
+
+        <!-- No Results Fallback -->
+        <div id="noResults" class="hidden text-center py-16 bg-white border border-slate-200 rounded-xl shadow-xs text-slate-500">
+            <span class="text-4xl block mb-2">🔎</span>
+            No custom matches found for that keyword. Try searching <strong>LG, Samsung, Electrolux, Frigidaire, GE, Café, Profile, KitchenAid, or Whirlpool</strong>.
+        </div>
+    </div>
+
+    <script>
+        // Core JSON Data parsed cleanly from all 15 pages of the raw rebate manual [0.1.1 - 0.1.15]
+        const rebateData = [
+            {
+                "id": "abc_bf_2026",
+                "brand": "ABC Warehouse (Store-Wide)",
+                "type": "Store Bundle",
+                "title": "Black Friday Multi-Brand Buy More Save More",
+                "timeline": "11/04/26 - 12/02/26",
+                "min_price": "$396 per appliance ($596 for LG/Studio/Signature models)",
+                "claim_window": "Must claim within 90 days of purchase.",
+                "url": "://abc-promos.com",
+                "stack_rules": "Can be stacked on top of individual direct manufacturer prepaid cards if purchased on a single sales receipt.",
+                "matrix": [
+                    {"items": "1 Appliance", "value": 50},
+                    {"items": "2 Appliances", "value": 100},
+                    {"items": "3 Appliances", "value": 200},
+                    {"items": "4 Appliances", "value": 300},
+                    {"items": "5 Appliances", "value": 500},
+                    {"items": "6 Appliances", "value": 700},
+                    {"items": "7 Appliances", "value": 1000},
+                    {"items": "8 Appliances", "value": 1200}
+                ]
+            },
+            {
+                "id": "lg_bf_2026",
+                "brand": "LG / LG Studio",
+                "type": "Manufacturer Rebate",
+                "title": "National Black Friday Savings Bundle Event",
+                "timeline": "11/04/26 - 12/02/26",
+                "min_price": "Qualifying package bundle models excluding Countertop Microwaves, Air Care, Floor Care, and SIGNATURE line.",
+                "claim_window": "Submit online at ://lgoffers.com by 2/2/27.",
+                "url": "LGoffers.com",
+                "stack_rules": "Eligible for double-dipping stack alongside store-specific multi-product delivery discounts.",
+                "matrix": [
+                    {"items": "2 Qualifying LG Models", "value": 100},
+                    {"items": "3 Qualifying LG Models", "value": 300},
+                    {"items": "4+ Qualifying LG Models", "value": 500},
+                    {"items": "4 LG STUDIO Suite Models", "value": 600},
+                    {"items": "5+ LG STUDIO Suite Models", "value": 800}
+                ]
+            },
+            {
+                "id": "samsung_prepaid_2026",
+                "brand": "Samsung",
+                "type": "Manufacturer Rebate",
+                "title": "SmartThings National Appliance Bundle Boost",
+                "timeline": "10/01/26 - 12/31/26",
+                "min_price": "Eligible subcategories (Max 2 per subcategory style). Includes free 2-year warranty extension.",
+                "claim_window": "Claim online within 50 days of purchase.",
+                "url": "://samsung.com",
+                "stack_rules": "Cannot be matched with identical manufacturer package rebates but fully stacks on local retailer store rewards.",
+                "matrix": [
+                    {"items": "2 Samsung Appliances", "value": 100},
+                    {"items": "3 Samsung Appliances", "value": 300},
+                    {"items": "4 Samsung Appliances", "value": 400},
+                    {"items": "5 Samsung Appliances", "value": 500},
+                    {"items": "6 Samsung Appliances", "value": 700},
+                    {"items": "7 Samsung Appliances", "value": 800},
+                    {"items": "8 Samsung Appliances", "value": 1000}
+                ]
+            },
+            {
+                "id": "midea_kitchen_2026",
+                "brand": "Midea",
+                "type": "Manufacturer Rebate",
+                "title": "Exclusive Kitchen Package Rewards Program",
+                "timeline": "04/01/26 - 12/31/26",
+                "min_price": "Qualifying select suite model packages mapped in sku directory.",
+                "claim_window": "Submit online via processing terminal.",
+                "url": "MideaRebates.com",
+                "stack_rules": "Flat cap structure based on cumulative tiered suite purchases.",
+                "matrix": [
+                    {"items": "Qualifying Midea Package Tier", "value": 500}
+                ]
+            },
+            {
+                "id": "frigidaire_pro_2026",
+                "brand": "Frigidaire Professional",
+                "type": "Manufacturer Rebate",
+                "title": "Suite Completion Bonus Program",
+                "timeline": "07/09/26 - 12/30/26",
+                "min_price": "Limited to exactly 1 model item per kitchen subcategory slot.",
+                "claim_window": "Submit claims online by January 30, 2027.",
+                "url": "frigidairepromotions.com",
+                "stack_rules": "Offers up to $300 bonus on separate single models plus matrix system increments up to a total of $2000 maximum scaling back.",
+                "matrix": [
+                    {"items": "4 Frigidaire Pro Items", "value": 200},
+                    {"items": "5 Frigidaire Pro Items", "value": 300},
+                    {"items": "6 Frigidaire Pro Items", "value": 400},
+                    {"items": "7 Frigidaire Pro Items", "value": 825}
+                ]
+            },
+            {
+                "id": "electrolux_laundry_2026",
+                "brand": "Electrolux",
+                "type": "Manufacturer Rebate",
+Use code with caution.
+"title": "Premium Laundry Front-Load Pair Promo",
+"timeline": "07/09/26 - 12/30/26",
+"min_price": "Valid only on select qualifying front-load pairs and space-saving towers.",
+"claim_window": "File online or mail postmarked by January 30, 2027.",
+"url": "electroluxpromotions.com",
+"stack_rules": "Stacks cleanly underneath all independent store-wide purchase matrix events.",
+"matrix": [
+{"items": "Qualifying Laundry Pair / Tower", "value": 100}
+]
+},
+{
+"id": "electrolux_kitchen_2026",
+"brand": "Electrolux",
+"type": "Manufacturer Rebate",
+"title": "Whole Home Better Living Suite Event",
+"timeline": "07/09/26 - 12/30/26",
+"min_price": "Up to $300 base adjustments included on targeted standalone items.",
+"claim_window": "Register records via portal by 01/30/27.",
+"url": "electroluxpromotions.com",
+"stack_rules": "Maximum structural cap provides up to $3000 total potential savings configurations.",
+"matrix": [
+{"items": "4 Electrolux Kitchen Items", "value": 400},
+{"items": "5 Electrolux Kitchen Items", "value": 500},
+{"items": "6 Electrolux Kitchen Items", "value": 700},
+{"items": "7 Electrolux Kitchen Items", "value": 1050},
+{"items": "8 Electrolux Kitchen Items", "value": 1525}
+]
+},
+{
+"id": "ge_holiday_2026",
+"brand": "GE Appliances / Profile / Café",
+"type": "Manufacturer Rebate",
+"title": "Unified Holiday Premium Savings Matrix",
+"timeline": "10/21/26 - 12/02/26",
+"min_price": "Pre-tax min $396 per piece. Excludes stand-alone compact freezers.",
+"claim_window": "Must submit tracking code within 90 days of store delivery receipt.",
+"url": "rebate-promos.com",
+"stack_rules": "Household limit cap: 1 overarching corporate submission structure per calendar address.",
+"matrix": [
+{"items": "1 GE Appliance", "value": 50},
+{"items": "2 GE Appliances", "value": 100},
+{"items": "3 GE Appliances", "value": 200},
+{"items": "4 GE Appliances", "value": 300},
+{"items": "5 GE Appliances", "value": 500},
+{"items": "6 GE Appliances", "value": 700},
+{"items": "7 GE Appliances", "value": 1000},
+{"items": "8 GE Appliances", "value": 1200}
+]
+},
+{
+"id": "ge_commercial_laundry",
+"brand": "GE Appliances",
+"type": "Manufacturer Rebate",
+"title": "Commercial Laundry Specialty Segment Event",
+"timeline": "11/19/25 - 12/31/26",
+"min_price": "Commercial structural configurations minimum $396 base invoice price.",
+"claim_window": "90-day post-purchase compliance check window applies.",
+"url": "rebate-promos.com",
+"stack_rules": "Can be loaded onto specific home design project vouchers.",
+"matrix": [
+{"items": "1 Commercial Unit", "value": 100},
+{"items": "2 Commercial Units", "value": 300}
+]
+},
+{
+"id": "ge_profile_innovation",
+"brand": "GE Profile",
+"type": "Manufacturer Rebate",
+"title": "The Smarter Innovation Appliance Suite Rebate",
+"timeline": "07/01/26 - 12/31/26",
+"min_price": "Select Profile connected models (Limit 1 per standard micro/vent style classification layout block).",
+"claim_window": "File digital records via platform matching verified invoice lines.",
+"url": "GEAppliancesPromotions.com",
+"stack_rules": "Cannot be bundled with identical core GE package promotions containing matched SKU strings.",
+"matrix": [
+{"items": "4 Profile Suite Models", "value": 400},
+{"items": "5 Profile Suite Models", "value": 750},
+{"items": "6 Profile Suite Models", "value": 1100},
+{"items": "7 Profile Suite Models", "value": 1500},
+{"items": "8 Profile Suite Models", "value": 2000}
+]
+},
+{
+"id": "cafe_express_yourself",
+"brand": "Café",
+"type": "Manufacturer Rebate",
+"title": "Express Yourself Personalized Luxury Suite Event",
+"timeline": "07/01/26 - 12/31/26",
+"min_price": "Direct fulfillment matrix (Explicitly excludes mass box merchants such as Amazon, Best Buy, Lowe's, and Home Depot).",
+"claim_window": "Submit validation paperwork before final deadline March 31, 2027.",
+"url": "CafeAppliancesPromotions.com",
+"stack_rules": "Unlock an additional $200 bonus by choosing a Wall Oven + Cooktop configuration, or a separate $500 bonus for premium commercial ranges.",
+"matrix": [
+{"items": "2 Café Luxury Units", "value": 100},
+{"items": "3 Café Luxury Units", "value": 200},
+{"items": "4 Café Luxury Units", "value": 400},
+{"items": "5 Café Luxury Units", "value": 900},
+{"items": "6 Café Luxury Units", "value": 1400},
+{"items": "7 Café Luxury Units", "value": 2000},
+{"items": "8 Café Luxury Units ($2500 base + $500 max range bonus)", "value": 3000}
+]
+},
+{
+"id": "kitchenaid_bf_2026",
+"brand": "KitchenAid",
+"type": "Manufacturer Rebate",
+"title": "Black Friday National Holiday Appliance Bundle",
+"timeline": "11/04/26 - 12/31/26",
+"min_price": "Pre-tax min $396 per major model item. Small countertop equipment variants are excluded.",
+"claim_window": "Claim windows lock exactly 90 days from order confirmation timestamps.",
+"url": "rebate-promos.com",
+"stack_rules": "Strictly limited to a maximum allowance of 2 unique items grouped per core subcategory index slot.",
+"matrix": [
+{"items": "2 KitchenAid Units", "value": 100},
+{"items": "3 KitchenAid Units", "value": 200},
+{"items": "4 KitchenAid Units", "value": 300},
+{"items": "5 KitchenAid Units", "value": 500},
+{"items": "6 KitchenAid Units", "value": 700},
+{"items": "7 KitchenAid Units", "value": 1000},
+{"items": "8 KitchenAid Units", "value": 1200}
+]
+},
+{
+"id": "kitchenaid_dream_kitchen",
+"brand": "KitchenAid",
+"type": "Manufacturer Rebate",
+"title": "Craft Your Dream Kitchen Master Series",
+"timeline": "10/01/26 - 12/31/26",
+"min_price": "Qualifying premium operational SKU schedule catalog listings.",
+"claim_window": "File profile metrics via online terminal architecture within 90 days.",
+"url": "rebate-promos.com",
+"stack_rules": "Strictly limits households to a single claim structure containing 1 chosen model variation per main appliance role.",
+"matrix": [
+{"items": "2 Premium KitchenAid Models", "value": 100},
+{"items": "3 Premium KitchenAid Models", "value": 300},
+{"items": "4 Premium KitchenAid Models", "value": 500},
+{"items": "5 Premium KitchenAid Models", "value": 900},
+{"items": "6 Premium KitchenAid Models", "value": 1800},
+{"items": "7 Premium KitchenAid Models", "value": 2500},
+{"items": "8 Premium KitchenAid Models", "value": 3000}
+]
+},
+{
+"id": "whirlpool_maytag_bf",
+"brand": "Whirlpool / Maytag",
+"type": "Manufacturer Rebate",
+"title": "Official Black Friday Unified Holiday Savings",
+"timeline": "11/04/26 - 12/31/26",
+"min_price": "Minimum individual qualifying piece pricing lines set at $396 pre-tax.",
+"claim_window": "Submit registration tracks within 90 validation days.",
+"url": "rebate-promos.com",
+"stack_rules": "Special configuration clause rules that Combi Laundry space-saving layouts count instantly as 2 full standalone matrix units.",
+"matrix": [
+{"items": "1 Combined Brand Unit", "value": 50},
+{"items": "2 Combined Brand Units", "value": 100},
+{"items": "3 Combined Brand Units", "value": 200},
+{"items": "4 Combined Brand Units", "value": 300},
+{"items": "5 Combined Brand Units", "value": 500},
+{"items": "6 Combined Brand Units", "value": 700},
+{"items": "7 Combined Brand Units", "value": 1000},
+{"items": "8 Combined Brand Units", "value": 1200}
+]
+}
+];
+// Object memory tracking the active tier selection for each individual rebate program
+let currentSelections = {};
+function displayRebates(data) {
+const container = document.getElementById('rebatesList');
+const noResults = document.getElementById('noResults');
+container.innerHTML = '';
+if (data.length === 0) {
+noResults.classList.remove('hidden');
+return;
+} else {
+noResults.classList.add('hidden');
+}
+data.forEach(program => {
+const card = document.createElement('div');
+// Color formatting context classes mapping type attributes
+const isStoreBundle = program.type === "Store Bundle";
+const typeBadgeColor = isStoreBundle ? "bg-amber-100 text-amber-900 border-amber-300" : "bg-indigo-100 text-indigo-900 border-indigo-300";
+// Read current memory state to check if this program is active in the calculator stack
+const activeSelectionIndex = currentSelections[program.id] !== undefined ? currentSelections[program.id] : -1;
+let cardHTML = `
+${program.type}
+
+${program.brand}
+
+${program.title}
+
+
+📅 ${program.timeline}
+
+Eligibility Terms
+${program.min_price}
+
+
+Stacking Compliance Rules
+${program.stack_rules}
+
+
+📩 ${program.claim_window}
+Portal Link ↗
+
+Select Purchase Tier
+-- Not Purchased ($0) --
+${program.matrix.map((tier, idx) => <option value="${idx}" ${activeSelectionIndex === idx ? 'selected' : ''}> ${tier.items} -> Save $${tier.value} </option>).join('')}
+
+Calculated Savings
+
+$${activeSelectionIndex !== -1 ? program.matrix[activeSelectionIndex].value : 0}
+
+
+
+
+
+`;
+card.innerHTML = cardHTML;
+container.appendChild(card);
+});
+}
+// Action processor tracking variable updates from UI selection dropdown changes
+window.updateProgramTier = function(programId, optionIndex) {
+const parsedIndex = parseInt(optionIndex);
+if (parsedIndex === -1) {
+delete currentSelections[programId];
+} else {
+currentSelections[programId] = parsedIndex;
+}
+calculateStackTotals();
+}
+// Logic compiler adding values inside active registry memory
+function calculateStackTotals() {
+let total = 0;
+let count = 0;
+const badgesContainer = document.getElementById('selectedBadges');
+const summaryShelf = document.getElementById('selectedContainer');
+badgesContainer.innerHTML = '';
+Object.keys(currentSelections).forEach(programId => {
+const targetProgram = rebateData.find(p => p.id === programId);
+const selectedTierIndex = currentSelections[programId];
+const selectedTierData = targetProgram.matrix[selectedTierIndex];
+total += selectedTierData.value;
+count++;
+// Build a dynamic visual text badge representing the active stack configuration line
+const badge = document.createElement('span');
+badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-900 text-white shadow-xs animate-fade-in";
+badge.innerHTML = <span>${targetProgram.brand}: <strong>$${selectedTierData.value}</strong></span> <button onclick="removeStackLine('${programId}')" class="hover:text-red-400 font-extrabold ml-1 cursor-pointer transition-colors">×<
